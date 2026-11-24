@@ -1,0 +1,18 @@
+effects:
+  global:
+    - id: color
+      type: hue_shift
+      degrees: [-150, 150]
+    - id: wave
+      type: wave
+      intensity: 0.5
+      order: 1
+  per_clip:
+    - id: symmetry
+      type: kaleidoscope
+      probability: 0.6
+      order: 2
+    - id: levels
+      type: posterize
+      probability: 0.25
+      order: 3

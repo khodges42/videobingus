@@ -1,0 +1,27 @@
+analysis: true
+effects:
+  global:
+    - id: raster
+      type: scan_displacement
+      displacement: 40
+      spacing: 4
+      oscillator: 0.25
+      colorize: 1
+    - id: screen
+      type: display
+      intensity: 0.35
+      order: 1
+overlays:
+  - id: scope
+    source: generator:oscilloscope_xy
+    generator_params:
+      gain: 3.5
+      decay: 0.92
+    scale: 0.35
+    position: bottom_right
+    blend: screen
+    opacity: 0.6
+modulation:
+  - target: effects.raster.displacement
+    source: bass_energy
+    output_range: [15, 65]

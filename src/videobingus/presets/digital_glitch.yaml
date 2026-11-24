@@ -1,0 +1,16 @@
+effects:
+  global:
+    - id: persistence
+      type: temporal_blend
+      intensity: 0.35
+  per_clip:
+    - id: channels
+      type: rgb_shift
+      pixels: [3, 12]
+      probability: 0.4
+  events:
+    - id: corruption
+      type: block_glitch
+      probability_per_second: 0.12
+      duration: [0.15, 0.7]
+      cooldown: 2

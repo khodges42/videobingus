@@ -1,0 +1,35 @@
+clips:
+  duration: [4, 10]
+transitions:
+  - type: cut
+    weight: 2
+  - type: analog_crossfade
+    weight: 2
+    duration: [0.5, 1.5]
+    params:
+      chroma_offset: 0.4
+  - type: dirty_crossfade
+    weight: 4
+    duration: [0.6, 1.8]
+    intensity: [0.35, 0.8]
+  - type: scanline_mixer
+    weight: 1
+    params:
+      pattern: moving
+  - type: luma_key
+    weight: 1
+  - type: glitch_switch
+    weight: 1
+effects:
+  global:
+    - id: composite
+      type: composite_video
+      intensity: 0.2
+  transitions:
+    - id: disagreement
+      type: sync_corruption
+      intensity: 0.25
+      loss: 0.5
+      recovery: 0.4
+      attack: 0.1
+      release: 0.3

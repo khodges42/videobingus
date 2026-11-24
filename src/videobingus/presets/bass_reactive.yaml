@@ -1,0 +1,26 @@
+analysis: true
+effects:
+  global:
+    - id: tape
+      type: vhs
+      intensity: 0.3
+  events:
+    - id: corruption
+      type: block_glitch
+      trigger: bass_onset
+      probability: 0.4
+      duration: [0.1, 0.4]
+      cooldown: 2
+overlays:
+  - id: spectrum
+    source: generator:spectrum
+    blend: screen
+    opacity: 0.25
+modulation:
+  - target: effects.tape.horizontal_jitter
+    source: bass_energy
+    output_range: [0, 8]
+    smoothing: 0.15
+  - target: overlays.spectrum.opacity
+    source: rms
+    output_range: [0.1, 0.5]

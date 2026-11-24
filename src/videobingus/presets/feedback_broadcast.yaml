@@ -1,0 +1,36 @@
+transitions:
+  - type: analog_crossfade
+    duration: [0.6, 1.5]
+    weight: 3
+  - type: feedback_transition
+    duration: [1, 3]
+    weight: 1
+effects:
+  global:
+    - id: enhancer
+      type: dirty_enhancer
+      intensity: 0.2
+    - id: feedback
+      type: optical_feedback
+      intensity: 0.45
+      gain: 0.98
+      injection: 0.25
+      mode: normal
+      order: 1
+    - id: screen
+      type: display
+      intensity: 0.4
+      order: 2
+    - id: recapture
+      type: virtual_camera
+      intensity: 0.4
+      order: 3
+  events:
+    - id: loss
+      type: sync_corruption
+      probability_per_second: 0.025
+      duration: [0.3, 1.3]
+      cooldown: 8
+      loss: 0.8
+      release: 0.5
+      order: 4

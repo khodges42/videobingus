@@ -1,0 +1,27 @@
+analysis: true
+signals:
+  palette_motion:
+    type: lfo
+    frequency: 0.09
+    waveform: triangle
+effects:
+  global:
+    - id: oscillator
+      type: spatial_synth
+      pattern: rings
+      frequency: 4
+      luma_phase: 1.8
+      intensity: 0.65
+    - id: colorizer
+      type: analog_colorizer
+      mapping: channels
+      folds: 2
+      intensity: 0.7
+      order: 1
+modulation:
+  - target: effects.colorizer.phase
+    source: palette_motion
+    output_range: [0, 1]
+  - target: effects.oscillator.frequency
+    source: bass_energy
+    output_range: [2, 8]

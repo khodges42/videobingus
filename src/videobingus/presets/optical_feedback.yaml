@@ -1,0 +1,22 @@
+signals:
+  camera_drift:
+    type: lfo
+    waveform: sine
+    frequency: 0.07
+effects:
+  global:
+    - id: feedback
+      type: optical_feedback
+      gain: 1.01
+      injection: 0.12
+      mode: normal
+      zoom: 1.02
+      rotation: 0.4
+      hue: 0.5
+      drift: 0.5
+      preserve_state_across_clips: true
+modulation:
+  - target: effects.feedback.rotation
+    source: camera_drift
+    output_range: [-1.2, 1.2]
+    smoothing: 0.2

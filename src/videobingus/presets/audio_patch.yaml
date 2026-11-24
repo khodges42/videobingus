@@ -1,0 +1,43 @@
+analysis: true
+signals:
+  camera_drift:
+    type: smooth_random
+    rate: 0.3
+    smoothing: 0.3
+  unstable_sync:
+    type: sample_hold
+    rate: 4
+    trigger: bass_onset
+    smoothing: 0.15
+effects:
+  global:
+    - id: feedback
+      type: optical_feedback
+      mode: normal
+      injection: 0.18
+    - id: colorizer
+      type: analog_colorizer
+      intensity: 0.35
+      order: 1
+  events:
+    - id: sync
+      type: sync_corruption
+      trigger: bass_onset
+      probability: 0.25
+      duration: [0.2, 0.8]
+      cooldown: 3
+      release: 0.3
+      order: 2
+modulation:
+  - target: effects.feedback.gain
+    source: bass_energy
+    output_range: [0.78, 1.06]
+  - target: effects.feedback.rotation
+    source: camera_drift
+    output_range: [-1.2, 1.2]
+  - target: effects.colorizer.phase
+    source: mid_energy
+    output_range: [0, 1]
+  - target: effects.sync.horizontal_phase
+    source: unstable_sync
+    output_range: [-18, 18]

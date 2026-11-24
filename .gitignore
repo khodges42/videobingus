@@ -1,2 +1,14 @@
 resources/officeclips.mp4
 resources/officeclips2.mp4
+resources/larger_prompt.txt
+
+.venv/
+.tools/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.cache/
+build/
+dist/
+.output/

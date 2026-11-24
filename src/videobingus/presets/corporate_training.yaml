@@ -1,0 +1,16 @@
+clips:
+  duration: [8, 22]
+effects:
+  global:
+    - id: tape
+      type: vhs
+      intensity: 0.25
+  events:
+    - id: tracking
+      type: tracking_error
+      intensity: 0.45
+      probability_per_second: 0.015
+      cooldown: 12
+titles:
+  enabled: true
+  style: vcr

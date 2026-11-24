@@ -1,0 +1,31 @@
+clips:
+  duration: [4, 12]
+effects:
+  global:
+    - id: enhancer
+      type: dirty_enhancer
+      intensity: 0.4
+      enhancement: 2.5
+    - id: chroma
+      type: chroma_corruption
+      intensity: 0.45
+      phase: 20
+      drift: 45
+      order: 1
+    - id: overload
+      type: signal_overload
+      intensity: 0.22
+      gain: 1.8
+      mode: fold
+      order: 2
+  events:
+    - id: sync
+      type: sync_corruption
+      probability_per_second: 0.09
+      duration: [0.5, 2]
+      cooldown: 4
+      loss: 0.8
+      tearing: 60
+      recovery: 0.5
+      release: 0.4
+      order: 3

@@ -1,0 +1,22 @@
+effects:
+  global:
+    - id: composite
+      type: composite_video
+      quality: carrier
+      intensity: 0.65
+      cross_color: 0.8
+      cross_luma: 0.4
+      burst_instability: 0.4
+    - id: chroma
+      type: chroma_corruption
+      intensity: 0.45
+      delay: 6
+      bleed: 9
+      drift: 60
+      order: 1
+    - id: sync
+      type: sync_corruption
+      intensity: 0.25
+      jitter: 5
+      tearing: 16
+      order: 2

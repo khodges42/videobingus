@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "videobingus"
+version = "0.1.0"
+description = "Offline procedural video compositions for DJ mixes"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=2.1,<3", "opencv-python-headless>=4.10,<5", "scipy>=1.14,<2",
+  "typer>=0.15,<1", "rich>=13.9,<15", "pydantic>=2.10,<3", "PyYAML>=6,<7",
+  "pillow>=11,<13",
+]
+
+[project.scripts]
+videobingus = "videobingus.cli:app"
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "ruff>=0.11,<1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

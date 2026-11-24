@@ -1,0 +1,71 @@
+seed: 420
+audio: ../.output/demo/mix.wav
+cue: ../.output/demo/mix.cue
+sources: [../resources]
+analysis: true
+output:
+  path: ../.output/synthesis-example.mp4
+  resolution: [1280, 720]
+  fps: 30
+clips:
+  duration: [2, 4]
+transitions:
+  - type: dirty_crossfade
+    weight: 3
+    duration: [0.5, 1]
+    intensity: [0.3, 0.7]
+  - type: luma_key
+    weight: 1
+    duration: [0.5, 1]
+signals:
+  camera_drift:
+    type: lfo
+    waveform: sine
+    frequency: 0.07
+  unstable_sync:
+    type: sample_hold
+    rate: 4
+    smoothing: 0.15
+effects:
+  global:
+    - id: feedback
+      type: optical_feedback
+      mode: normal
+      injection: 0.2
+      gain: 1.01
+      zoom: 1.02
+      intensity: 0.65
+    - id: composite
+      type: composite_video
+      intensity: 0.2
+      order: 1
+  transitions:
+    - id: sync
+      type: sync_corruption
+      intensity: 0.25
+      recovery: 0.4
+      release: 0.3
+      order: 2
+  events:
+    - id: mosh
+      type: simulated_datamosh
+      trigger: clip_boundary
+      probability: 0.3
+      duration: [0.5, 1.5]
+      cooldown: 2
+      release: 0.5
+      order: 3
+modulation:
+  - target: effects.feedback.rotation
+    source: camera_drift
+    output_range: [-1.2, 1.2]
+  - target: effects.feedback.gain
+    source: bass_energy
+    output_range: [0.78, 1.04]
+  - target: effects.sync.horizontal_phase
+    source: unstable_sync
+    output_range: [-16, 16]
+titles:
+  enabled: true
+  mix_title: videobingus
+  font_size: 28

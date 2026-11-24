@@ -1,0 +1,24 @@
+signals:
+  camera_drift:
+    type: lfo
+    waveform: triangle
+    frequency: 0.05
+effects:
+  global:
+    - id: feedback
+      type: optical_feedback
+      gain: 1.04
+      injection: 0.2
+      zoom: 0.98
+      rotation: 2
+      mode: difference
+      clipping: soft
+      hue: 0.8
+      saturation: 1.01
+      curvature: 0.04
+      blur: 0
+      drift: 0.3
+modulation:
+  - target: effects.feedback.rotation
+    source: camera_drift
+    output_range: [-2, 2]

@@ -1,0 +1,29 @@
+effects:
+  global:
+    - id: chroma
+      type: chroma_corruption
+      intensity: 0.3
+    - id: enhancer
+      type: dirty_enhancer
+      intensity: 0.25
+      order: 1
+  events:
+    - id: blocks
+      type: digital_corruption
+      mode: block_persist
+      amount: 0.6
+      trigger: clip_boundary
+      probability: 0.3
+      duration: [0.5, 2]
+      cooldown: 3
+      release: 0.4
+      order: 2
+    - id: sorting
+      type: digital_corruption
+      mode: pixel_sort
+      trigger: random
+      probability_per_second: 0.02
+      duration: [0.2, 0.7]
+      cooldown: 7
+      intensity: 0.45
+      order: 3

@@ -1,0 +1,17 @@
+clips:
+  duration: [3, 8]
+effects:
+  events:
+    - id: mosh
+      type: simulated_datamosh
+      trigger: clip_boundary
+      probability: 0.7
+      duration: [2, 5]
+      cooldown: 0
+      motion_amplification: 2
+      refresh_probability: 0.025
+      persistence: 0.995
+      recovery: 0.01
+      corruption: 0.04
+      release: 0.8
+      inactive: retain

@@ -1,0 +1,18 @@
+effects:
+  global:
+    - id: tape
+      type: vhs
+      intensity: 0.85
+      noise: 18
+      horizontal_jitter: 5
+      dropout: 0.1
+  events:
+    - id: tracking
+      type: tracking_error
+      probability_per_second: 0.15
+      duration: [0.2, 1.2]
+      cooldown: 3
+generators:
+  - type: signal_loss
+    probability: 0.08
+    duration: [0.2, 0.8]

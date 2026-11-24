@@ -1,0 +1,42 @@
+seed: 420
+audio: ../.output/demo/mix.wav
+cue: ../.output/demo/mix.cue
+sources:
+  - ../resources
+preset: corporate_training
+analysis: true
+
+output:
+  path: ../.output/mix.mp4
+  resolution: [1280, 720]
+  fps: 30
+  crf: 20
+
+clips:
+  duration: [3, 8]
+  speed: [0.9, 1.1]
+  crossfade: 0.25
+
+effects:
+  per_track:
+    - id: color
+      type: hue_shift
+      probability: 0.35
+      degrees: [-25, 25]
+  events:
+    - id: tracking
+      type: tracking_error
+      trigger: bass_onset
+      probability: 0.3
+      duration: [0.15, 0.5]
+      cooldown: 3
+
+modulation:
+  - target: effects.tape.horizontal_jitter
+    source: bass_energy
+    output_range: [0, 5]
+    smoothing: 0.2
+
+titles:
+  mix_title: videobingus
+  font_size: 28

@@ -1,0 +1,9 @@
+effects:
+  global:
+    - id: screen
+      type: camcorder
+      intensity: 0.8
+    - id: tape
+      type: vhs
+      intensity: 0.25
+      order: 1

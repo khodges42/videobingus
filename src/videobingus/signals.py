@@ -14,6 +14,18 @@ AUDIO_SIGNALS = {
     "onset",
 }
 BUILTINS = AUDIO_SIGNALS | {"track_time", "transition_progress"}
+AUDIO_SIGNALS.update(
+    {
+        "immediate_energy",
+        "sustained_energy",
+        "energy_trend",
+        "onset_density",
+        "low_activity",
+        "relative_contrast",
+        "visual_intensity",
+    }
+)
+BUILTINS.update(AUDIO_SIGNALS | {"track_progress"})
 
 
 class Signal(BaseModel):

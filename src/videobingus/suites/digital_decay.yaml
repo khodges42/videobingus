@@ -1,0 +1,117 @@
+name: digital_decay
+description: Discrete computation, persistent macroblocks and interrupted motion.
+composition:
+  mode: auto
+  footage_weight: 0.35
+  generated_weight: 0.65
+  scene_duration:
+  - 8
+  - 25
+  motif_recurrence: 0.4
+identity:
+  palette_family:
+  - ega
+  - industrial
+  - monochrome
+  palette_scope: track
+  motion: 0.5
+  geometric_bias: 0.5
+  complexity: 0.55
+generators:
+- type: cellular_automata
+  weight: 3
+  params:
+    system: elementary
+- type: domain_warp
+  weight: 2
+  params:
+    contours: 0.5
+- type: interference
+  weight: 2
+  params:
+    sharpness: 0.06
+- type: wireframe
+  weight: 1
+  params:
+    geometry: cube
+effects:
+  persistent:
+    choose:
+    - 0
+    - 1
+    pool:
+    - type: temporal_blend
+      intensity:
+      - 0.12
+      - 0.3
+  per_scene:
+    choose:
+    - 0
+    - 2
+    pool:
+    - type: rgb_shift
+      intensity:
+      - 0.1
+      - 0.3
+      pixels:
+      - 2
+      - 7
+    - type: pixelate
+      intensity:
+      - 0.2
+      - 0.5
+      size:
+      - 3
+      - 9
+  events:
+    max_active: 2
+    pool:
+    - type: simulated_datamosh
+      intensity:
+      - 0.4
+      - 0.8
+      trigger: clip_boundary
+      probability: 0.25
+      duration:
+      - 1
+      - 4
+      refresh_probability: 0.04
+    - type: digital_corruption
+      intensity:
+      - 0.25
+      - 0.6
+      mode: block_persist
+      trigger: onset
+      probability: 0.15
+      cooldown: 4
+transitions:
+- type: feedback_transition
+  weight: 3
+  duration:
+  - 0.5
+  - 1.5
+- type: glitch_switch
+  weight: 2
+  duration:
+  - 0.5
+  - 1.5
+- type: cut
+  weight: 1
+  duration:
+  - 0.5
+  - 1.5
+audio_response:
+  enabled: true
+  profiles:
+  - auto
+  preserve_quiet_sections: true
+randomization:
+  max_global_effects: 2
+  max_scene_effects: 2
+  max_simultaneous_events: 2
+  max_expensive_processors: 1
+  max_overlays: 2
+  preserve_palette: false
+  intensity: 0.6
+performance:
+  quality: balanced

@@ -102,6 +102,11 @@ def at(features: dict, time: float) -> dict:
         return {name: 0.0 for name in FEATURES}
     times = features["times"]
     result = {name: float(np.interp(time, times, features[name])) for name in FEATURES}
+    from .director import CONTROL_NAMES
+
+    for name in CONTROL_NAMES:
+        if name in features:
+            result[name] = float(np.interp(time, times, features[name]))
     index = min(len(times) - 1, int(np.searchsorted(times, time)))
     for key in ("waveform", "spectrum"):
         result[key] = features[key][index] if key in features else []
@@ -130,6 +135,7 @@ class Modulator:
 
     def values_at(self, features):
         effects, overlays = {}, {}
+        self.scene_values = {}
         for ordinal, item in enumerate(self.modulation):
             low, high = item.output_range
             signal = features[item.source]
@@ -140,8 +146,8 @@ class Modulator:
             value = self.values.get(ordinal, value) * (1 - alpha) + value * alpha
             self.values[ordinal] = value
             group, identity, parameter = item.target.split(".")
-            if group == "effects":
-                destination = effects.setdefault(identity, {})
+            if group in {"effects", "scenes", "generators"}:
+                destination = (effects if group == "effects" else self.scene_values).setdefault(identity, {})
                 previous = destination.get(parameter)
                 destination[parameter] = (
                     value

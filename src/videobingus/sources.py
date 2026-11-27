@@ -5,18 +5,20 @@ from pathlib import Path
 from .decoder import decode
 from .effects.engine import State
 from .generators import generate
+from .scenes.runtime import SceneStore
 
 
 class SourceTimeline:
     """At most two simultaneous segment decoders; no transition frame queue."""
 
-    def __init__(self, plan, ffmpeg, output):
+    def __init__(self, plan, ffmpeg, output, features=None):
         self.plan, self.ffmpeg, self.output = plan, ffmpeg, output
         self.active = {}
         self.transitions = {t["incoming"]: t for t in plan.get("transitions", [])}
         self.tails = {t["outgoing"]: t["end"] - t["start"] for t in plan.get("transitions", [])}
         self.cursor = 0
         self.generator_states = {}
+        self.scene_store = SceneStore(plan["config"], output, features)
 
     def __enter__(self):
         return self
@@ -25,6 +27,7 @@ class SourceTimeline:
         cleanup = ExitStack()
         for stack, _ in self.active.values():
             cleanup.push(stack)
+        cleanup.callback(self.scene_store.close)
         return cleanup.__exit__(*error)
 
     def open(self, number, index):
@@ -32,6 +35,9 @@ class SourceTimeline:
         tail = self.tails.get(number, 0)
         count = clip["end"] - clip["start"]
         specification = dict(clip)
+        if clip["source"] is None:
+            self.active[number] = ExitStack(), None
+            return
         specification["source_duration"] = self.plan["media"][clip["source"]]["duration"]
         if specification["reverse"] and tail:
             specification["offset"] = (
@@ -72,9 +78,12 @@ class SourceTimeline:
         for number in sorted(needed):
             if number not in self.active:
                 self.open(number, index)
-            frame = next(self.active[number][1])
+            iterator = self.active[number][1]
+            frame = next(iterator) if iterator is not None else None
             clip = clips[number]
-            if clip.get("generator") and index < clip["generator_end"]:
+            if "scene" in clip:
+                frame = self.scene_store.frame(clip, index, context, frame)
+            elif clip.get("generator") and index < clip["generator_end"]:
                 local = replace(
                     context,
                     clip_id=clip["start"],

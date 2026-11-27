@@ -1,0 +1,117 @@
+name: acid_television
+description: Hard-color synthesis, unstable broadcast textures and dirty source mixing.
+composition:
+  mode: auto
+  footage_weight: 0.35
+  generated_weight: 0.65
+  scene_duration:
+  - 10
+  - 35
+  motif_recurrence: 0.4
+identity:
+  palette_family:
+  - acid
+  - ultraviolet
+  - thermal
+  palette_scope: track
+  motion: 0.6
+  geometric_bias: 0.6
+  complexity: 0.55
+generators:
+- type: plasma
+  weight: 3
+- type: interference
+  weight: 3
+- type: voronoi
+  weight: 2
+- type: recursive_geometry
+  weight: 2
+  params:
+    symmetry: kaleidoscope
+effects:
+  persistent:
+    choose:
+    - 0
+    - 2
+    pool:
+    - type: composite_video
+      intensity:
+      - 0.15
+      - 0.4
+    - type: optical_feedback
+      intensity:
+      - 0.15
+      - 0.35
+      mode: normal
+      gain:
+      - 0.85
+      - 1.02
+      injection: 0.2
+  per_scene:
+    choose:
+    - 0
+    - 2
+    pool:
+    - type: analog_colorizer
+      intensity:
+      - 0.2
+      - 0.5
+      mapping: bands
+    - type: signal_overload
+      intensity:
+      - 0.15
+      - 0.35
+      mode: fold
+      gain:
+      - 1.1
+      - 1.8
+    - type: chroma_corruption
+      intensity:
+      - 0.15
+      - 0.35
+  events:
+    max_active: 2
+    pool:
+    - type: sync_corruption
+      intensity:
+      - 0.2
+      - 0.6
+      trigger: bass_onset
+      probability: 0.12
+      cooldown: 5
+transitions:
+- type: dirty_crossfade
+  weight: 3
+  duration:
+  - 0.5
+  - 1.5
+- type: luma_key
+  weight: 2
+  duration:
+  - 0.5
+  - 1.5
+- type: feedback_transition
+  weight: 2
+  duration:
+  - 0.5
+  - 1.5
+- type: cut
+  weight: 1
+  duration:
+  - 0.5
+  - 1.5
+audio_response:
+  enabled: true
+  profiles:
+  - auto
+  preserve_quiet_sections: true
+randomization:
+  max_global_effects: 2
+  max_scene_effects: 2
+  max_simultaneous_events: 2
+  max_expensive_processors: 1
+  max_overlays: 2
+  preserve_palette: true
+  intensity: 0.6
+performance:
+  quality: balanced

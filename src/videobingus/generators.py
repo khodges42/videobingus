@@ -3,6 +3,12 @@ import numpy as np
 
 
 def validate_generator_params(kind, params):
+    from .scenes.catalog import CATALOG
+    from .scenes.catalog import validate_params as validate_scene_params
+
+    if kind in CATALOG:
+        validate_scene_params(kind, params)
+        return
     from .effects.registry import validate_params
     from .effects.synthesis import SPATIAL_PATTERNS, TEST_PATTERNS
 
@@ -37,6 +43,40 @@ def generate(kind, size, context, params=None, state=None):
 
     params = params or {}
     state = state or State()
+    from .scenes.catalog import CATALOG
+
+    if kind in CATALOG:
+        from .scenes.runtime import SceneContext, SceneRuntime, stable_seed
+
+        runtime = state.data.get("scene_runtime")
+        if runtime is None:
+            runtime = SceneRuntime(
+                kind,
+                params,
+                seed=stable_seed(getattr(context, "seed", 420), getattr(context, "generator_id", kind)),
+                performance=getattr(context, "performance", None),
+                palette=getattr(context, "palette", "deep_space"),
+            )
+            state.data["scene_runtime"] = runtime
+        ctx = SceneContext(
+            context.time,
+            context.clip_time,
+            context.index,
+            context.fps,
+            context.audio,
+            context.raw_frame,
+            context.track,
+            getattr(context, "signals", {}),
+            context.clip_id,
+        )
+        return runtime.frame(
+            ctx,
+            size,
+            profiles=getattr(context, "audio_profiles", ()),
+            modulation=getattr(context, "scene_modulation", {}).get(
+                getattr(context, "generator_id", kind), {}
+            ),
+        )
     width, height = size
     random = context.random
     out = np.zeros((height, width, 3), dtype=np.uint8)

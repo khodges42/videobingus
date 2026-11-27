@@ -1,0 +1,110 @@
+name: bass_mutations
+description: Bass-shaped fields and geometry with sparse motion-transfer accents.
+composition:
+  mode: auto
+  footage_weight: 0.35
+  generated_weight: 0.65
+  scene_duration:
+  - 8
+  - 30
+  motif_recurrence: 0.4
+identity:
+  palette_family:
+  - acid
+  - infrared
+  - cyan_magenta
+  palette_scope: track
+  motion: 0.65
+  geometric_bias: 0.5
+  complexity: 0.55
+generators:
+- type: metaballs
+  weight: 3
+- type: flow_field
+  weight: 3
+- type: tunnel
+  weight: 2
+- type: wireframe
+  weight: 2
+  params:
+    geometry: mesh
+- type: domain_warp
+  weight: 2
+effects:
+  persistent:
+    choose:
+    - 0
+    - 1
+    pool:
+    - type: optical_feedback
+      intensity:
+      - 0.1
+      - 0.3
+      mode: normal
+      gain: 0.95
+      injection: 0.2
+  per_scene:
+    choose:
+    - 0
+    - 1
+    pool:
+    - type: scan_displacement
+      intensity:
+      - 0.1
+      - 0.3
+      mode: remap
+      displacement:
+      - 5
+      - 25
+  events:
+    max_active: 2
+    pool:
+    - type: sync_corruption
+      intensity:
+      - 0.2
+      - 0.5
+      trigger: bass_onset
+      probability: 0.18
+      cooldown: 4
+    - type: simulated_datamosh
+      intensity:
+      - 0.4
+      - 0.7
+      trigger: clip_boundary
+      probability: 0.2
+      duration:
+      - 1
+      - 3
+transitions:
+- type: dirty_crossfade
+  weight: 3
+  duration:
+  - 0.5
+  - 1.5
+- type: luma_key
+  weight: 2
+  duration:
+  - 0.5
+  - 1.5
+- type: feedback_transition
+  weight: 2
+  duration:
+  - 0.5
+  - 1.5
+audio_response:
+  enabled: true
+  profiles:
+  - sub_pressure
+  - transient_injection
+  - energy_accumulation
+  preserve_quiet_sections: true
+randomization:
+  max_global_effects: 2
+  max_scene_effects: 2
+  max_simultaneous_events: 2
+  max_expensive_processors: 1
+  max_overlays: 2
+  preserve_palette: true
+  intensity: 0.7
+performance:
+  quality: balanced

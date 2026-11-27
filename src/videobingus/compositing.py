@@ -59,6 +59,7 @@ class Layers:
         self.active = []
         self.ffmpeg, self.output, self.effects = ffmpeg, output, effects
         self.generator_states = {}
+        self.coordinates = None
 
     def __enter__(self):
         return self
@@ -122,6 +123,7 @@ class Layers:
             local = replace(
                 context,
                 clip_id=overlay["start"],
+                generator_id=overlay["id"],
                 clip_time=(context.index - overlay["start"]) / context.fps,
                 random=np.random.default_rng(
                     np.random.SeedSequence([self.effects.seed, stream, context.index])
@@ -144,11 +146,40 @@ class Layers:
             if alpha is not None:
                 foreground = np.concatenate([foreground, alpha], axis=2)
             context.inputs[overlay["id"]] = foreground[..., :3]
+            amount = opacity.get(overlay["id"], overlay["opacity"])
+            role = overlay.get("role", "overlay")
+            if role == "input":
+                continue
+            if role in {"mask", "displacement"}:
+                field = (
+                    cv2.resize(foreground[..., :3], (frame.shape[1], frame.shape[0])).astype(np.float32) / 255
+                )
+                if role == "mask":
+                    luminance = field @ np.float32([0.299, 0.587, 0.114])
+                    frame = pixels(frame.astype(np.float32) * (1 - amount + luminance[..., None] * amount))
+                else:
+                    if self.coordinates is None:
+                        self.coordinates = np.meshgrid(
+                            np.arange(frame.shape[1], dtype=np.float32),
+                            np.arange(frame.shape[0], dtype=np.float32),
+                        )
+                    dx, dy = overlay.get("displacement", (24, 12))
+                    displaced = cv2.remap(
+                        frame,
+                        self.coordinates[0] + (field[..., 0] * 2 - 1) * dx,
+                        self.coordinates[1] + (field[..., 1] * 2 - 1) * dy,
+                        cv2.INTER_LINEAR,
+                        borderMode=cv2.BORDER_REFLECT,
+                    )
+                    frame = pixels(
+                        frame.astype(np.float32) * (1 - amount) + displaced.astype(np.float32) * amount
+                    )
+                continue
             frame = blend(
                 frame,
                 foreground,
                 overlay["blend"],
-                opacity.get(overlay["id"], overlay["opacity"]),
+                amount,
                 overlay["position"],
                 overlay["scale"],
                 overlay["luma_key"],

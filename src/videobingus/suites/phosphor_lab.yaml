@@ -1,0 +1,86 @@
+name: phosphor_lab
+description: Vector-like geometry and mathematical traces through gentle display treatment.
+composition:
+  mode: auto
+  footage_weight: 0.35
+  generated_weight: 0.65
+  scene_duration:
+  - 20
+  - 65
+  motif_recurrence: 0.4
+identity:
+  palette_family:
+  - phosphor
+  - amber
+  - monochrome
+  palette_scope: track
+  motion: 0.35
+  geometric_bias: 0.8
+  complexity: 0.55
+generators:
+- type: wireframe
+  weight: 3
+  params:
+    geometry: lissajous
+- type: strange_attractor
+  weight: 3
+  params:
+    system: lorenz
+- type: ifs
+  weight: 2
+- type: flow_field
+  weight: 1
+effects:
+  persistent:
+    choose:
+    - 0
+    - 1
+    pool:
+    - type: display
+      intensity:
+      - 0.15
+      - 0.35
+      mask: 0.03
+      bloom: 0.2
+  per_scene:
+    choose:
+    - 0
+    - 1
+    pool:
+    - type: scan_displacement
+      intensity:
+      - 0.08
+      - 0.2
+      mode: remap
+      displacement:
+      - 4
+      - 15
+  events:
+    max_active: 0
+    pool: []
+transitions:
+- type: analog_crossfade
+  weight: 4
+  duration:
+  - 0.5
+  - 1.5
+- type: scanline_mixer
+  weight: 1
+  duration:
+  - 0.5
+  - 1.5
+audio_response:
+  enabled: true
+  profiles:
+  - auto
+  preserve_quiet_sections: true
+randomization:
+  max_global_effects: 2
+  max_scene_effects: 2
+  max_simultaneous_events: 2
+  max_expensive_processors: 1
+  max_overlays: 2
+  preserve_palette: true
+  intensity: 0.6
+performance:
+  quality: balanced

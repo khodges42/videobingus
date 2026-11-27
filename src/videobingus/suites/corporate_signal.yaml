@@ -1,0 +1,113 @@
+name: corporate_signal
+description: Archival footage interrupted by obsolete software graphics and analog
+  recording.
+composition:
+  mode: auto
+  footage_weight: 0.8
+  generated_weight: 0.19999999999999996
+  scene_duration:
+  - 15
+  - 45
+  motif_recurrence: 0.4
+identity:
+  palette_family:
+  - archival
+  - commodore
+  - ega
+  palette_scope: track
+  motion: 0.4
+  geometric_bias: 0.5
+  complexity: 0.55
+generators:
+- type: wireframe
+  weight: 3
+  params:
+    geometry: cube
+- type: rotozoom
+  weight: 2
+- type: plasma
+  weight: 2
+  params:
+    pixel_size: 3
+- type: floor_cast
+  weight: 1
+effects:
+  persistent:
+    choose:
+    - 0
+    - 2
+    pool:
+    - type: vhs
+      intensity:
+      - 0.2
+      - 0.4
+    - type: composite_video
+      intensity:
+      - 0.1
+      - 0.25
+  per_scene:
+    choose:
+    - 0
+    - 1
+    pool:
+    - type: virtual_camera
+      intensity:
+      - 0.08
+      - 0.18
+  events:
+    max_active: 2
+    pool:
+    - type: simulated_datamosh
+      intensity:
+      - 0.3
+      - 0.6
+      trigger: clip_boundary
+      probability: 0.08
+      duration:
+      - 1
+      - 2
+      cooldown: 15
+transitions:
+- type: dirty_crossfade
+  weight: 2
+  duration:
+  - 0.5
+  - 1.5
+- type: analog_crossfade
+  weight: 3
+  duration:
+  - 0.5
+  - 1.5
+- type: cut
+  weight: 4
+  duration:
+  - 0.5
+  - 1.5
+audio_response:
+  enabled: true
+  profiles:
+  - auto
+  preserve_quiet_sections: true
+randomization:
+  max_global_effects: 2
+  max_scene_effects: 2
+  max_simultaneous_events: 2
+  max_expensive_processors: 1
+  max_overlays: 2
+  preserve_palette: true
+  intensity: 0.6
+performance:
+  quality: retro
+overlays:
+- id: computer_graphics
+  source: generator:wireframe
+  generator_params:
+    geometry: cube
+  scale: 0.3
+  position: bottom_right
+  activation: random
+  probability_per_second: 0.015
+  duration:
+  - 6
+  - 15
+  opacity: 0.7

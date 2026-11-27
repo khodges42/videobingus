@@ -1,0 +1,102 @@
+name: warehouse
+description: Limited-palette architecture, perspective and rhythmic industrial tension.
+composition:
+  mode: auto
+  footage_weight: 0.35
+  generated_weight: 0.65
+  scene_duration:
+  - 10
+  - 35
+  motif_recurrence: 0.4
+identity:
+  palette_family:
+  - monochrome
+  - industrial
+  palette_scope: track
+  motion: 0.55
+  geometric_bias: 0.95
+  complexity: 0.55
+generators:
+- type: wireframe
+  weight: 3
+  params:
+    geometry: cube
+- type: floor_cast
+  weight: 3
+  params:
+    pattern: grid
+- type: metaballs
+  weight: 2
+  params:
+    style: threshold
+- type: interference
+  weight: 1
+effects:
+  persistent:
+    choose:
+    - 0
+    - 2
+    pool:
+    - type: feedback
+      intensity:
+      - 0.1
+      - 0.25
+    - type: composite_video
+      intensity:
+      - 0.05
+      - 0.15
+  per_scene:
+    choose:
+    - 0
+    - 2
+    pool:
+    - type: posterize
+      intensity:
+      - 0.1
+      - 0.3
+      levels: 4
+    - type: edges
+      intensity:
+      - 0.1
+      - 0.25
+  events:
+    max_active: 2
+    pool:
+    - type: sync_corruption
+      intensity:
+      - 0.1
+      - 0.3
+      trigger: bass_onset
+      probability: 0.08
+      cooldown: 10
+transitions:
+- type: luma_key
+  weight: 3
+  duration:
+  - 0.5
+  - 1.5
+- type: cut
+  weight: 3
+  duration:
+  - 0.5
+  - 1.5
+- type: dirty_crossfade
+  weight: 1
+  duration:
+  - 0.5
+  - 1.5
+audio_response:
+  enabled: true
+  profiles:
+  - auto
+  preserve_quiet_sections: true
+randomization:
+  max_global_effects: 2
+  max_scene_effects: 2
+  max_simultaneous_events: 2
+  max_expensive_processors: 1
+  max_overlays: 2
+  preserve_palette: true
+  intensity: 0.6
+performance:
+  quality: balanced

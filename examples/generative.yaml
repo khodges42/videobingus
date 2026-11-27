@@ -1,0 +1,9 @@
+audio: ../.output/demo/mix.wav
+seed: 420
+suite: artificial_life
+performance:
+  quality: balanced
+output:
+  path: ../.output/generative-mix.mp4
+  resolution: [1920, 1080]
+  fit: fit

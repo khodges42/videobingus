@@ -14,6 +14,14 @@ Reverse decoding works in normalized chunks containing at most 64 MiB of RGB fra
 
 Metadata caches use path, size, and modification time in `.cache/videobingus` under the working directory. Audio caches live in `.cache/videobingus` beside the soundtrack. Cache writes are best-effort; originals are never rewritten. Delete caches to force reinspection.
 
+## Generative sources and suite compilation
+
+`scenes/` extends the source timeline with analytical, fixed-timestep simulation, and delayed recursive sources. A planned clip stores either a media index, a scene descriptor, or both for video-textured/injected scenes. Descriptors contain sampled parameters, independent seeds and palette stops. Generated frames enter the same transition, effect, overlay and encoder stages as decoded media. A bounded LRU owns simulation state; simultaneous instances fork state, while recurring motifs can resume it.
+
+The scene catalog supplies validation, discovery, modulation capabilities, structural restrictions and cost metadata. Palette mapping and audio profiles are shared by source scenes and generated overlays. The existing signal bank also targets scene parameters. An optional offline energy controller contributes time-indexed controls and musical-state intervals to the ordinary plan.
+
+Suite YAML compiles before project validation into scene pools, ordered registry effects, transition candidates and overlays. Weighted selection uses independent random streams, category compatibility and explicit density/cost limits. The saved project is usable without the original suite; the saved plan preserves actual timeline choices. Default fit remains aspect-preserving 1080p with bars; explicit stretch is available for footage and generated canvases. See [generative scenes and suites](generative.md) for algorithms, lifecycle, parameter tables and preview limits.
+
 ## Clips and transitions
 
 `clips.selection` is `shuffle` or `random`. Shuffle bags avoid repeats until the eligible bag is exhausted. With only one source, repetition is unavoidable. `allow_consecutive_source` defaults to false; `random_start` defaults to true.

@@ -69,7 +69,9 @@ def render(
     for clip in plan["clips"]:
         if clip["start"] != cursor or clip["end"] <= cursor:
             raise ValueError("Render plan has a gap, overlap, or invalid clip interval")
-        if not 0 <= clip["source"] < len(plan["media"]):
+        if clip["source"] is None and "scene" not in clip:
+            raise ValueError("A clip without footage requires a scene")
+        if clip["source"] is not None and not 0 <= clip["source"] < len(plan["media"]):
             raise ValueError("Render plan has an invalid media reference")
         if clip["offset"] < 0 or clip["speed"] <= 0:
             raise ValueError("Render plan has invalid source timing")
@@ -131,6 +133,10 @@ def render(
         audio = at(features, float(index / fps))
         track = next((t for t in reversed(plan["tracks"]) if round(t["time"] * fps) <= index), None)
         track_time = float(index / fps) - (track["time"] if track else 0)
+        next_track = next((t["time"] for t in plan["tracks"] if t["time"] > index / fps), plan["duration"])
+        audio["track_progress"] = float(
+            np.clip(track_time / max(0.1, next_track - (track["time"] if track else 0)), 0, 1)
+        )
         while (
             transition_cursor < len(transition_intervals)
             and transition_intervals[transition_cursor]["end"] <= index
@@ -151,7 +157,7 @@ def render(
             else 0
         )
         signals = bank.evaluate(index, audio, track_time, progress)
-        return audio, track, track_time, progress, modulation.values_at(signals)
+        return audio, track, track_time, progress, modulation.values_at(signals), signals
 
     for index in range(warmup):
         controls(index)
@@ -227,17 +233,31 @@ def render(
                     layer_order=[o.id for o in project.overlays],
                 ) as layers,
                 effects,
-                SourceTimeline(plan, ffmpeg, project.output) as sources,
+                SourceTimeline(plan, ffmpeg, project.output, features) as sources,
                 StereoReader(project.audio, ffmpeg, fps, warmup, stereo_required) as stereo,
             ):
                 for index in range(warmup, end):
-                    audio, track, track_time, transition_progress, values = controls(index)
+                    audio, track, track_time, transition_progress, values, signals = controls(index)
                     audio["stereo"] = stereo.at(index)
                     random = np.random.default_rng(np.random.SeedSequence([plan["seed"], index]))
                     context = Context(index, float(fps), 0, track, audio, random)
+                    context.seed = plan["seed"]
+                    context.performance = project.performance.model_dump()
+                    context.palette = project.palette
+                    context.signals = signals
+                    context.audio_profiles = project.audio_profiles
+                    context.scene_modulation = modulation.scene_values
+                    context.visual_intensity = project.master_intensity * (
+                        audio.get("visual_intensity", 1) if project.composition.dynamics else 1
+                    )
+                    context.preserve_palette = bool(
+                        project.randomization and project.randomization.preserve_palette
+                    )
                     clip, frame, outgoing, transition = sources.at(index, context)
                     context.clip_time = (index - clip["start"]) / float(fps)
                     context.clip_id = clip["start"]
+                    if "scene" in clip:
+                        context.palette = clip["scene"]["palette"]
                     context.track_time = track_time
                     context.transition_progress = transition_progress
                     context.previous_inputs = previous_inputs
@@ -283,5 +303,10 @@ def render(
         for identity, (seconds, calls) in sorted(effects.timings.items(), key=lambda item: -item[1][0]):
             console.print(
                 f"{identity}: {seconds:.3f}s, {calls} frames, {seconds * 1000 / max(1, calls):.2f} ms/frame"
+            )
+        for kind, (seconds, calls) in sources.scene_store.timings.items():
+            console.print(
+                f"generator {kind}: {seconds:.3f}s, {calls} frames, "
+                f"{seconds * 1000 / max(1, calls):.2f} ms/frame"
             )
     return target

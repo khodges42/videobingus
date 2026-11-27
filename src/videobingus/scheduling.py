@@ -109,6 +109,21 @@ def schedule(plan, project):
                     }
                 )
     plan["effects"], plan["audio_events"] = activations, audio_events
+    if project.randomization:
+        from .director import cap_intervals, state_at
+
+        event_ids = {e.id for e in project.effects.events}
+        baseline = [a for a in activations if a["id"] not in event_ids]
+        candidates = [a for a in activations if a["id"] in event_ids]
+        if project.composition.dynamics:
+            sensitivity = project.composition.effect_density_sensitivity
+            candidates = [
+                a
+                for a in candidates
+                if rng(plan["seed"], f"density:{a['id']}:{a['start']}").random()
+                < 1 - sensitivity + sensitivity * state_at(plan["dynamics"], a["start"] / fps)["intensity"]
+            ]
+        plan["effects"] = baseline + cap_intervals(candidates, project.randomization.max_simultaneous_events)
 
 
 def sampled_params(kind, params, random):
@@ -125,6 +140,15 @@ def schedule_transitions(plan, project, reserve=True):
     transitions = []
     for index, incoming in enumerate(plan["clips"][1:], 1):
         outgoing = plan["clips"][index - 1]
+        if project.randomization:
+            from .scenes.catalog import CATALOG
+
+            cost = sum(
+                int("scene" in c and CATALOG[c["scene"]["type"]]["cost"] == "high")
+                for c in (outgoing, incoming)
+            )
+            if cost > project.randomization.max_expensive_processors:
+                continue
         if project.transitions:
             selected = random.choices(project.transitions, weights=[t.weight for t in project.transitions])[0]
             if selected.type == "cut":
@@ -139,7 +163,7 @@ def schedule_transitions(plan, project, reserve=True):
             kind, intensity, params = "analog_crossfade", 1, defaults("analog_crossfade")
             params["bleed"] = 0
         count = min(count, incoming["end"] - incoming["start"], outgoing["end"] - outgoing["start"])
-        if reserve and not outgoing["freeze"]:
+        if reserve and not outgoing["freeze"] and outgoing["source"] is not None:
             source = plan["media"][outgoing["source"]]
             nominal = (outgoing["end"] - outgoing["start"]) / fps * outgoing["speed"]
             tail = count / fps * outgoing["speed"]
@@ -160,6 +184,13 @@ def schedule_transitions(plan, project, reserve=True):
             }
         )
     plan["transitions"] = transitions
+    if project.composition.dynamics:
+        from .director import state_at
+
+        for transition in transitions:
+            transition["intensity"] *= (
+                0.5 + 0.5 * state_at(plan["dynamics"], transition["start"] / fps)["intensity"]
+            )
 
 
 def schedule_overlays(plan, project, fps, total):
@@ -194,4 +225,8 @@ def schedule_overlays(plan, project, fps, total):
                     }
                 )
                 begin += count
+    if project.randomization:
+        from .director import cap_intervals
+
+        overlays = cap_intervals(overlays, project.randomization.max_overlays)
     plan["overlays"] = overlays

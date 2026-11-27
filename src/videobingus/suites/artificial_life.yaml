@@ -1,0 +1,83 @@
+name: artificial_life
+description: Long-lived chemical, particle and agent systems with measured disturbances.
+composition:
+  mode: auto
+  footage_weight: 0.35
+  generated_weight: 0.65
+  scene_duration:
+  - 25
+  - 90
+  motif_recurrence: 0.4
+identity:
+  palette_family:
+  - phosphor
+  - pastel
+  - cyan_magenta
+  palette_scope: track
+  motion: 0.3
+  geometric_bias: 0.1
+  complexity: 0.55
+generators:
+- type: reaction_diffusion
+  weight: 3
+- type: flow_field
+  weight: 3
+- type: physarum
+  weight: 2
+- type: cellular_automata
+  weight: 1
+- type: boids
+  weight: 1
+- type: fluid_advection
+  weight: 2
+effects:
+  persistent:
+    choose:
+    - 0
+    - 1
+    pool:
+    - type: temporal_blend
+      intensity:
+      - 0.08
+      - 0.2
+  per_scene:
+    choose:
+    - 0
+    - 1
+    pool:
+    - type: analog_colorizer
+      intensity:
+      - 0.08
+      - 0.2
+      mapping: smooth
+  events:
+    max_active: 0
+    pool: []
+transitions:
+- type: analog_crossfade
+  weight: 4
+  duration:
+  - 1
+  - 3
+- type: luma_key
+  weight: 1
+  duration:
+  - 1
+  - 3
+audio_response:
+  enabled: true
+  profiles:
+  - transient_injection
+  - energy_accumulation
+  - slow_breathing
+  preserve_quiet_sections: true
+randomization:
+  max_global_effects: 2
+  max_scene_effects: 2
+  max_simultaneous_events: 2
+  max_expensive_processors: 1
+  max_overlays: 2
+  preserve_palette: true
+  intensity: 0.6
+performance:
+  quality: balanced

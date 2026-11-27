@@ -9,6 +9,8 @@ from rich.console import Console
 
 from .config import load
 from .platform import executable, run
+from .scene_cli import register_generators
+from .suite_cli import register_suites
 from .timeline import build, read, save
 
 app = typer.Typer(no_args_is_help=True, help="Procedural visuals for DJ mixes. All rendering is offline.")
@@ -37,6 +39,21 @@ def effects_list(effect: Annotated[str | None, typer.Argument()] = None):
         for parameter, default in STRUCTURED.get(name, {}).items():
             console.print(f"  {parameter}: {default}", markup=False)
     console.print("datamosh simulates frame persistence; it does not modify compressed bitstreams.")
+
+
+@effects_app.command("info")
+def effects_info(effect: str, json_output: Annotated[bool, typer.Option("--json")] = False):
+    import json
+
+    import yaml
+
+    from .effects.catalog import describe
+    from .effects.registry import PARAMETERS
+
+    if effect not in PARAMETERS:
+        raise typer.BadParameter(f"Unknown effect: {effect}")
+    metadata = describe(effect)
+    typer.echo(json.dumps(metadata, indent=2) if json_output else yaml.safe_dump(metadata, sort_keys=False))
 
 
 @presets_app.command("list")
@@ -81,8 +98,25 @@ def composition(
     encoder_preset=None,
     ffmpeg=None,
     ffprobe=None,
+    fit=None,
+    generators=None,
+    quality=None,
+    suite=None,
+    effects=None,
+    randomize=False,
+    include_effect=None,
+    exclude_effect=None,
+    intensity=None,
 ):
     overrides = {}
+    import yaml
+
+    configured = yaml.safe_load(config.read_text(encoding="utf-8-sig")) if config else {}
+    configured_suite = isinstance(configured, dict) and bool(configured.get("suite"))
+    suite_mode = bool(suite or randomize or configured_suite)
+    random_seed = seed is not None and str(seed).lower() == "random"
+    if seed is not None:
+        seed = None if str(seed).lower() == "random" else int(seed)
     for name, value in (
         ("audio", audio),
         ("sources", sources),
@@ -99,6 +133,36 @@ def composition(
                 value = value.resolve()
             overrides[name] = value
     settings = {}
+    if random_seed:
+        overrides["seed"] = None
+    if suite:
+        candidate = Path(suite)
+        overrides["suite"] = str(candidate.resolve()) if candidate.is_file() else suite
+    if suite_mode:
+        overrides["selection"] = {
+            "randomize": randomize,
+            "generators": [s.strip() for s in (generators or "").split(",") if s.strip()],
+            "effects": [s.strip() for s in (effects or "").split(",") if s.strip()],
+            "include_effect": include_effect or [],
+            "exclude_effect": exclude_effect or [],
+            "intensity": intensity,
+        }
+    elif generators:
+        overrides["scenes"] = [{"type": name.strip()} for name in generators.split(",") if name.strip()]
+    if effects and not suite_mode:
+        from .effects.synthesis_specs import MIXERS
+
+        chosen = [s.strip() for s in effects.split(",") if s.strip()]
+        overrides["effects"] = {
+            "global": [{"id": f"manual_{name}", "type": name} for name in chosen if name not in MIXERS]
+        }
+        overrides["transitions"] = [{"type": name} for name in chosen if name in MIXERS]
+    if intensity is not None and not suite_mode:
+        overrides["master_intensity"] = intensity
+    if quality:
+        overrides["performance"] = {"quality": quality}
+    if fit:
+        settings["fit"] = fit
     for name, value in (("path", output), ("fps", fps), ("crf", crf), ("encoder_preset", encoder_preset)):
         if value is not None:
             settings[name] = value
@@ -109,22 +173,59 @@ def composition(
             settings["path"] = output.resolve()
         overrides["output"] = settings
     project = load(config, overrides)
+    if not suite_mode and (include_effect or exclude_effect):
+        from .config import Effect, Transition
+        from .effects.registry import PARAMETERS
+        from .effects.synthesis_specs import MIXERS
+
+        excluded = set(exclude_effect or [])
+        unknown = set(include_effect or []) | excluded
+        if unknown - PARAMETERS.keys():
+            raise ValueError(f"Unknown effects: {sorted(unknown - PARAMETERS.keys())}")
+        for group in (
+            project.effects.global_,
+            project.effects.per_clip,
+            project.effects.per_track,
+            project.effects.events,
+            project.effects.transitions,
+        ):
+            group[:] = [e for e in group if e.type not in excluded]
+        project.transitions[:] = [t for t in project.transitions if t.type not in excluded]
+        for name in include_effect or []:
+            if name not in excluded:
+                if name in MIXERS:
+                    project.transitions.append(Transition(type=name))
+                else:
+                    project.effects.global_.append(Effect(id=f"included_{name}", type=name))
+        project = type(project).model_validate(project.model_dump(by_alias=True))
     if sources:
         for track in project.tracks:
             track.sources = None
     if min_clip is not None or max_clip is not None:
-        project.clips.duration = (
-            min_clip if min_clip is not None else project.clips.duration[0],
-            max_clip if max_clip is not None else project.clips.duration[1],
-        )
-        for track in project.tracks:
-            duration = list(track.clips.get("duration", project.clips.duration))
-            if min_clip is not None:
-                duration[0] = min_clip
-            if max_clip is not None:
-                duration[1] = max_clip
-            track.clips["duration"] = duration
-        project = type(project).model_validate(project.model_dump())
+        if project.scenes:
+            low = min_clip if min_clip is not None else min(project.composition.scene_duration[0], max_clip)
+            high = max_clip if max_clip is not None else max(project.composition.scene_duration[1], min_clip)
+            project.composition.scene_duration = (low, high)
+            project.composition.max_scene_changes_per_minute = min(
+                120, max(project.composition.max_scene_changes_per_minute, 60 / max(0.1, low))
+            )
+            for scene in project.scenes:
+                scene.minimum_scene_duration = min(scene.minimum_scene_duration, high)
+            for track in project.tracks:
+                track.clips.pop("duration", None)
+        else:
+            project.clips.duration = (
+                min_clip if min_clip is not None else project.clips.duration[0],
+                max_clip if max_clip is not None else project.clips.duration[1],
+            )
+            for track in project.tracks:
+                duration = list(track.clips.get("duration", project.clips.duration))
+                if min_clip is not None:
+                    duration[0] = min_clip
+                if max_clip is not None:
+                    duration[1] = max_clip
+                track.clips["duration"] = duration
+        project = type(project).model_validate(project.model_dump(by_alias=True))
     result = build(project)
     console.print(f"Seed: {result['seed']} · {len(result['clips'])} clips")
     return result
@@ -139,7 +240,7 @@ def render(
     plan: Annotated[Path | None, typer.Option("--plan")] = None,
     output: Annotated[Path | None, typer.Option("-o", "--output")] = None,
     preset: str | None = None,
-    seed: int | None = None,
+    seed: str | None = None,
     cue: Path | None = None,
     min_clip: float | None = None,
     max_clip: float | None = None,
@@ -152,11 +253,22 @@ def render(
     ffprobe: str | None = None,
     overwrite: bool = False,
     profile: bool = False,
+    fit: str | None = None,
+    generators: str | None = None,
+    quality: str | None = None,
+    suite: str | None = None,
+    effects: str | None = None,
+    randomize: bool = False,
+    include_effect: Annotated[list[str] | None, typer.Option("--include-effect")] = None,
+    exclude_effect: Annotated[list[str] | None, typer.Option("--exclude-effect")] = None,
+    intensity: float | None = None,
 ):
-    """Render an audio recording with one or more footage paths."""
+    """Render an audio recording with footage, generative scenes, or a suite."""
     from .render import render as render_video
 
     if plan:
+        if randomize or include_effect or exclude_effect or intensity is not None:
+            raise ValueError("Suite and selection overrides require a new composition, not --plan")
         if any(
             v is not None
             for v in (
@@ -172,6 +284,11 @@ def render(
                 fps,
                 crf,
                 encoder_preset,
+                fit,
+                generators,
+                quality,
+                suite,
+                effects,
             )
         ):
             raise ValueError("--plan accepts only output, media-root, and overwrite options")
@@ -193,6 +310,15 @@ def render(
             encoder_preset,
             ffmpeg,
             ffprobe,
+            fit,
+            generators,
+            quality,
+            suite,
+            effects,
+            randomize,
+            include_effect,
+            exclude_effect,
+            intensity,
         )
     console.print(str(render_video(result, output, overwrite, profile=profile)))
 
@@ -383,6 +509,9 @@ def presets_demo(
         )
     )
 
+
+register_generators(app, guarded)
+register_suites(app, guarded)
 
 if __name__ == "__main__":
     app()

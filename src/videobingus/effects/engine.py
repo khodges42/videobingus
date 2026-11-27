@@ -28,6 +28,14 @@ class Context:
     activation_time: float = 0
     activation_end: float = 0
     layer: str = "composite"
+    seed: int = 420
+    performance: dict | None = None
+    palette: str | list = "deep_space"
+    signals: dict = field(default_factory=dict)
+    scene_modulation: dict = field(default_factory=dict)
+    generator_id: str = ""
+    visual_intensity: float = 1
+    preserve_palette: bool = False
 
     @property
     def time(self):
@@ -312,11 +320,18 @@ class EffectEngine:
             self.boundaries[identity] = context.clip_id, track, context.index
             parameters = dict(effect["params"])
             parameters.update(modulation.get(identity, {}))
+            if (
+                effect["type"] == "analog_colorizer"
+                and context.preserve_palette
+                and isinstance(context.palette, list)
+            ):
+                parameters["palette"] = context.palette
             from .registry import PARAMETERS
 
             for name, (_, low, high) in PARAMETERS[effect["type"]].items():
                 parameters[name] = float(np.clip(parameters[name], low, high))
             intensity = float(np.clip(parameters.pop("intensity", effect["intensity"]), 0, 1))
+            intensity *= context.visual_intensity
             if identity not in live:
                 intensity = 0
             elapsed = (context.index - effect["start"]) / self.fps

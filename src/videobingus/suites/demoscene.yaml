@@ -1,0 +1,114 @@
+name: demoscene
+description: Palette-led software graphics with recurring geometry and restrained
+  processing.
+composition:
+  mode: auto
+  footage_weight: 0.35
+  generated_weight: 0.65
+  scene_duration:
+  - 8
+  - 24
+  motif_recurrence: 0.4
+identity:
+  palette_family:
+  - commodore
+  - ega
+  - cyan_magenta
+  palette_scope: track
+  motion: 0.7
+  geometric_bias: 0.9
+  complexity: 0.55
+generators:
+- type: plasma
+  weight: 3
+  params:
+    pixel_size: 2
+- type: tunnel
+  weight: 3
+- type: rotozoom
+  weight: 2
+- type: metaballs
+  weight: 2
+- type: starfield
+  weight: 1
+- type: wireframe
+  weight: 1
+  params:
+    geometry: torus
+- type: floor_cast
+  weight: 1
+effects:
+  persistent:
+    choose:
+    - 0
+    - 1
+    pool:
+    - type: composite_video
+      intensity:
+      - 0.08
+      - 0.2
+  per_scene:
+    choose:
+    - 0
+    - 2
+    pool:
+    - type: pixelate
+      intensity:
+      - 0.15
+      - 0.4
+      size:
+      - 2
+      - 5
+    - type: feedback
+      intensity:
+      - 0.1
+      - 0.25
+    - type: scan_displacement
+      intensity:
+      - 0.08
+      - 0.2
+      mode: remap
+      displacement:
+      - 5
+      - 15
+  events:
+    max_active: 2
+    pool:
+    - type: band_displace
+      intensity:
+      - 0.1
+      - 0.2
+      trigger: onset
+      probability: 0.08
+      cooldown: 8
+transitions:
+- type: analog_crossfade
+  weight: 3
+  duration:
+  - 0.5
+  - 1.5
+- type: scanline_mixer
+  weight: 1
+  duration:
+  - 0.5
+  - 1.5
+- type: cut
+  weight: 2
+  duration:
+  - 0.5
+  - 1.5
+audio_response:
+  enabled: true
+  profiles:
+  - auto
+  preserve_quiet_sections: true
+randomization:
+  max_global_effects: 2
+  max_scene_effects: 2
+  max_simultaneous_events: 2
+  max_expensive_processors: 1
+  max_overlays: 2
+  preserve_palette: true
+  intensity: 0.6
+performance:
+  quality: retro

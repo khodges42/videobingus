@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .effects.registry import GENERATORS, parameter_names, validate_params
 from .effects.synthesis_specs import MIXERS
+from .scene_config import Composition, Identity, Performance, Randomization, Scene, Selection
+from .scenes.catalog import CATALOG
 from .signals import BUILTINS, Signal, validate_signals
 
 
@@ -145,10 +147,14 @@ class Overlay(Model):
     probability_per_second: float = Field(0.015, ge=0, le=1)
     luma_key: float | None = Field(None, ge=0, le=1)
     generator_params: dict = Field(default_factory=dict)
+    role: Literal["overlay", "input", "mask", "displacement"] = "overlay"
+    displacement: tuple[float, float] = (24, 12)
 
     @model_validator(mode="after")
     def valid(self):
         ordered(self.duration, "overlay duration", 0.01)
+        if any(abs(value) > 200 for value in self.displacement):
+            raise ValueError("Overlay displacement must lie within [-200, 200] pixels")
         values = [self.opacity] if isinstance(self.opacity, float) else self.opacity
         if any(not 0 <= v <= 1 for v in values):
             raise ValueError("opacity must lie within [0, 1]")
@@ -248,7 +254,7 @@ class TrackOverride(Model):
 class Project(Model):
     seed: int | None = Field(None, ge=0, le=2**63 - 1)
     audio: Path
-    sources: list[Path] = Field(min_length=1)
+    sources: list[Path] = Field(default_factory=list)
     preset: str = "clean"
     cue: Path | None = None
     ffmpeg: str | None = None
@@ -265,11 +271,55 @@ class Project(Model):
     tracks: list[TrackOverride] = Field(default_factory=list)
     transitions: list[Transition] = Field(default_factory=list)
     signals: dict[str, Signal] = Field(default_factory=dict)
+    scenes: list[Scene] = Field(default_factory=list)
+    composition: Composition = Field(default_factory=Composition)
+    performance: Performance = Field(default_factory=Performance)
+    identity: Identity = Field(default_factory=Identity)
+    palette: str = "deep_space"
+    palettes: dict[str, list] = Field(default_factory=dict)
+    palette_space: Literal["rgb", "lab"] = "rgb"
+    suite: str | None = None
+    audio_profiles: list[str] = Field(default_factory=list)
+    randomization: Randomization | None = None
+    selection: Selection = Field(default_factory=Selection)
+    compiled_from: str | None = None
+    master_intensity: float = Field(1, ge=0, le=1)
 
     @model_validator(mode="after")
     def valid(self):
         effects = {e.id: e for e in self.effects.all()}
         overlays = {o.id: o for o in self.overlays}
+        from .palettes import colors
+        from .scenes.catalog import validate_params as validate_scene_params
+
+        if not self.sources and not self.scenes and not self.generators:
+            raise ValueError("Supply footage sources, scenes, or a suite")
+        if self.composition.mode == "footage" and not self.sources:
+            raise ValueError("Footage composition mode requires source media")
+        if self.composition.dynamics and not self.analysis:
+            raise ValueError("Composition dynamics require analysis: true")
+        scene_types = {s.id: s.type for s in self.scenes}
+        scene_types.update(
+            {
+                o.id: o.source.split(":", 1)[1]
+                for o in self.overlays
+                if o.source.startswith("generator:") and o.source.split(":", 1)[1] in CATALOG
+            }
+        )
+        if len({s.id for s in self.scenes}) != len(self.scenes):
+            raise ValueError("Scene instance identifiers must be unique")
+        colors(self.palette, self.palettes)
+        if "identity" not in self.model_fields_set or "palette_family" not in self.identity.model_fields_set:
+            self.identity.palette_family = [self.palette]
+        for family in self.identity.palette_family:
+            colors(family, self.palettes)
+        for scene in self.scenes:
+            if scene.palette:
+                colors(scene.palette, self.palettes)
+        from .scenes.profiles import NAMES as profile_names
+
+        if set(self.audio_profiles) - profile_names:
+            raise ValueError("Unknown generator audio modulation profile")
         validate_signals(self.signals)
         if len(effects) != len(self.effects.all()) or len(overlays) != len(self.overlays):
             raise ValueError("Effect and overlay identifiers must each be unique")
@@ -310,6 +360,8 @@ class Project(Model):
             elif group == "overlays" and instance in overlays and parameter == "opacity":
                 if low < 0 or high > 1:
                     raise ValueError("opacity modulation must lie in [0, 1]")
+            elif group in {"scenes", "generators"} and instance in scene_types:
+                validate_scene_params(scene_types[instance], {parameter: [low, high]}, modulation=True)
             else:
                 raise ValueError(f"Unknown modulation target: {modulation.target}")
         for overlay in self.overlays:
@@ -326,6 +378,14 @@ class Project(Model):
             raise ValueError("Waveform and spectrum generators require analysis: true")
         if len({t.index for t in self.tracks}) != len(self.tracks):
             raise ValueError("Duplicate track override index")
+        if self.randomization:
+            if len(self.effects.global_) > self.randomization.max_global_effects:
+                raise ValueError("Global effect count exceeds the configured randomization budget")
+            if (
+                len(self.effects.per_clip) + len(self.effects.per_track) + len(self.effects.transitions)
+                > self.randomization.max_scene_effects
+            ):
+                raise ValueError("Scene effect count exceeds the configured randomization budget")
         return self
 
 
@@ -345,6 +405,23 @@ def load(path: Path | None = None, overrides: dict | None = None) -> Project:
     if not isinstance(raw, dict):
         raise ValueError("project configuration must be a YAML mapping")
     raw = merge(raw, overrides or {})
+    if raw.get("suite") or (raw.get("selection", {}).get("randomize") and not raw.get("compiled_from")):
+        import secrets
+
+        from .suites.compiler import THEMES, compile_suite, load_suite
+
+        selection = Selection.model_validate(raw.get("selection", {}))
+        reference = raw.get("suite") or THEMES.get(selection.theme)
+        if reference is None:
+            raise ValueError("Unknown suite-generation theme")
+        chosen_seed = raw.get("seed")
+        if chosen_seed is None:
+            chosen_seed = secrets.randbits(63)
+        compiled = compile_suite(
+            load_suite(reference, path.resolve().parent if path else None), chosen_seed, selection
+        )
+        raw = merge(compiled, raw)
+        raw["suite"], raw["seed"] = None, chosen_seed
     from importlib.resources import files
 
     preset = raw.get("preset", "clean")
@@ -355,6 +432,11 @@ def load(path: Path | None = None, overrides: dict | None = None) -> Project:
     defaults = yaml.safe_load(
         files("videobingus.presets").joinpath(f"{preset}.yaml").read_text(encoding="utf-8")
     )
+    if overrides and "quality" in overrides.get("performance", {}):
+        raw["performance"] = {
+            **raw.get("performance", {}),
+            **Performance.model_validate(overrides["performance"]).model_dump(),
+        }
     project = Project.model_validate(merge(defaults or {}, raw))
     base = path.resolve().parent if path else Path.cwd()
     project.audio = (base / project.audio).resolve()

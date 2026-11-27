@@ -2,7 +2,7 @@
 
 <img src="resources/bingus2.PNG" alt="Bingus" width="180">
 
-Offline procedural video compositions for DJ mixes. Python, FFmpeg, and a folder of footage.
+Offline procedural video compositions for DJ mixes. Python, FFmpeg, generative artwork, and optional footage.
 
 Generate seeded edits, layer footage, apply analog and digital effects, and respond to track changes or audio energy. Rendering runs locally on the CPU. Source footage stays untouched; your mix supplies the soundtrack.
 
@@ -35,6 +35,8 @@ Reopen your terminal after installing FFmpeg if it is not found. Explicit `ffmpe
 
 ```text
 uv run videobingus render mix.wav footage/ -o mix.mp4
+uv run videobingus render mix.flac --suite demoscene --seed 420 -o generated.mp4
+uv run videobingus render mix.flac footage/ --suite acid_television -o hybrid.mp4
 uv run videobingus render mix.wav footage/ --preset vhs --seed 420 --cue mix.cue -o mix.mp4
 uv run videobingus render --config project.yaml
 uv run videobingus preview --config project.yaml --start 12:30 --duration 30 -o preview.mp4
@@ -49,6 +51,19 @@ uv run videobingus presets demo modular_video -o modular-demo.mp4
 ```
 
 Multiple footage directories or individual videos can follow the audio argument. Defaults are 1080p, 30 fps, H.264 CRF 20, and AAC audio; compatible AAC, MP3, and ALAC soundtracks are copied. Existing output requires `--overwrite`. Use `--help` on any command for options.
+
+Output defaults to YouTube-shaped **1920×1080**, preserving source aspect ratio with black bars. Use `--resolution 1920x1080 --fit stretch` to fill the frame by stretching, or `--fit crop` to fill it by cropping.
+
+Suites choose compatible generators, palettes, effects, transitions, and audio responses within fixed budgets. They support footage-only, fully generated, and hybrid compositions. Start with `demoscene`, `artificial_life`, `acid_television`, `digital_decay`, or `bass_mutations`. Run `suites list` for all eleven aesthetics.
+
+```text
+uv run videobingus generators demo reaction_diffusion --duration 30 -o organisms.mp4
+uv run videobingus suites demo demoscene --showcase --duration 30 --contact-sheet preview.png -o showcase.mp4
+uv run videobingus suites compile artificial_life mix.flac --seed 420 -o project.yaml
+uv run videobingus suites generate --theme organic --audio-reactive --seed 42 -o my-suite.yaml
+```
+
+The [generative guide](docs/generative.md) covers custom suites, generators, palettes, modulation, quality settings, and reproducible plans.
 
 Presets: `clean`, `vhs`, `destroyed_vhs`, `corporate_training`, `digital_glitch`, `psychedelic`, `crt_camcorder`, and `bass_reactive`. Their [YAML files](src/videobingus/presets) are editable and use the project schema.
 
@@ -95,7 +110,7 @@ Plans store paths relative to the plan file. Keep that directory structure when 
 
 Preview a saved plan for the same composition. A project without a seed gets a fresh seed whenever it is planned. Previews use three seconds of effect warm-up; long feedback histories can differ from a full render. Preview resolution defaults to 640×360.
 
-Use `preview --exact-history` to process the timeline from frame zero without encoding the preceding section. This preserves temporal history at the selected preview resolution and costs proportionally more time. `--warmup` changes the approximate warm-up in seconds. Add `--profile` to render, preview, or audition commands for per-effect timings. Effect demos use synthetic stereo test audio, with moving test patterns when no input is supplied.
+Use `preview --exact-history` to process the timeline from frame zero without encoding the preceding section. This preserves temporal history at the selected preview resolution and costs proportionally more time. `--warmup` changes the approximate warm-up in seconds. Add `--profile` to render, preview, or audition commands for per-effect and per-generator timings. Effect and suite demos use synthetic stereo test audio when no audio is supplied; standalone generator demos are silent by default.
 
 ## Development
 

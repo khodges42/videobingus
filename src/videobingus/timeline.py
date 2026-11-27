@@ -15,11 +15,22 @@ def build(project: Project) -> dict:
     if not any(s["codec_type"] == "audio" for s in info["streams"]):
         raise ValueError("The soundtrack contains no audio stream")
     duration = float(info["format"]["duration"])
-    media = discover(project.sources, project.ffprobe)
+    media = discover(project.sources, project.ffprobe) if project.sources else []
     primary_pool = list(range(len(media)))
     seed = project.seed if project.seed is not None else secrets.randbits(63)
     project = project.model_copy(deep=True)
     project.seed = seed
+    if not media and not project.scenes:
+        from .scene_config import Scene
+        from .scenes.catalog import CATALOG
+
+        project.scenes = [
+            Scene(type=g.type, weight=max(0.001, g.probability), params=g.params)
+            for g in project.generators
+            if g.type in CATALOG
+        ]
+        if not project.scenes:
+            raise ValueError("Without footage, select scene generators or a suite")
     fps = Fraction(str(project.output.fps))
     total = math.ceil(Fraction(str(duration)) * fps)
     from .audio import analyze
@@ -27,11 +38,16 @@ def build(project: Project) -> dict:
 
     tracks = parse(project.cue, duration) if project.cue else []
     features = analyze(project.audio, project.ffmpeg) if project.analysis else {}
+    from .director import derive
+
+    dynamics = derive(features, tracks, project.composition, duration) if project.composition.dynamics else []
     from .signals import needs_audio
 
     if not project.analysis and (
         needs_audio(project.signals, [m.source for m in project.modulation] + list(project.signals))
         or any(e.trigger in {"bass_onset", "onset", "energy"} for e in project.effects.events)
+        or bool(set(project.audio_profiles) - {"slow_breathing", "track_evolution"})
+        or any(t.source != "track" for s in project.scenes for t in s.triggers)
     ):
         raise ValueError("Audio modulation and audio triggers require analysis: true")
     track_sources = {}
@@ -52,7 +68,7 @@ def build(project: Project) -> dict:
     randomizer = rng(seed, "clips")
     clips, bag = [], []
     cursor, previous = 0, None
-    while cursor < total:
+    while cursor < total and not project.scenes:
         current_track = next((t for t in reversed(tracks) if round(t["time"] * fps) <= cursor), None)
         track_index = current_track["index"] if current_track else None
         settings = project.clips
@@ -97,8 +113,16 @@ def build(project: Project) -> dict:
             }
         )
         previous, cursor = index, cursor + count
+    if project.scenes:
+        from .scenes.planning import plan_scenes
+
+        clips = plan_scenes(
+            project, media, duration, tracks, seed, features, dynamics, track_sources, primary_pool
+        )
     generator_random = rng(seed, "generators")
     for clip in clips:
+        if "scene" in clip:
+            continue
         for generator in project.generators:
             if generator_random.random() < generator.probability:
                 from .scheduling import sample
@@ -120,6 +144,7 @@ def build(project: Project) -> dict:
         "effects": [],
         "overlays": [],
         "audio_features": features,
+        "dynamics": dynamics,
     }
     from .scheduling import schedule, schedule_transitions
 

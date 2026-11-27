@@ -1,0 +1,104 @@
+name: mathematical_maximalism
+description: Dense mathematical contours with recurring forms and deliberate symmetry.
+composition:
+  mode: auto
+  footage_weight: 0.35
+  generated_weight: 0.65
+  scene_duration:
+  - 12
+  - 45
+  motif_recurrence: 0.4
+identity:
+  palette_family:
+  - thermal
+  - cyan_magenta
+  - acid
+  palette_scope: track
+  motion: 0.5
+  geometric_bias: 0.7
+  complexity: 0.8
+generators:
+- type: fractal
+  weight: 3
+- type: strange_attractor
+  weight: 3
+- type: ifs
+  weight: 2
+- type: interference
+  weight: 2
+- type: recursive_geometry
+  weight: 2
+- type: domain_warp
+  weight: 1
+effects:
+  persistent:
+    choose:
+    - 0
+    - 2
+    pool:
+    - type: feedback
+      intensity:
+      - 0.15
+      - 0.4
+    - type: composite_video
+      intensity:
+      - 0.1
+      - 0.3
+  per_scene:
+    choose:
+    - 0
+    - 2
+    pool:
+    - type: kaleidoscope
+      intensity:
+      - 0.2
+      - 0.6
+    - type: analog_colorizer
+      intensity:
+      - 0.2
+      - 0.5
+    - type: wave
+      intensity:
+      - 0.1
+      - 0.3
+  events:
+    max_active: 2
+    pool:
+    - type: band_displace
+      intensity:
+      - 0.1
+      - 0.3
+      trigger: onset
+      probability: 0.1
+      cooldown: 6
+transitions:
+- type: luma_key
+  weight: 3
+  duration:
+  - 0.5
+  - 1.5
+- type: feedback_transition
+  weight: 2
+  duration:
+  - 0.5
+  - 1.5
+- type: dirty_crossfade
+  weight: 1
+  duration:
+  - 0.5
+  - 1.5
+audio_response:
+  enabled: true
+  profiles:
+  - auto
+  preserve_quiet_sections: true
+randomization:
+  max_global_effects: 3
+  max_scene_effects: 3
+  max_simultaneous_events: 2
+  max_expensive_processors: 1
+  max_overlays: 2
+  preserve_palette: false
+  intensity: 0.85
+performance:
+  quality: balanced

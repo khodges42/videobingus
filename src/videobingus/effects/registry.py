@@ -1,5 +1,6 @@
 """Parameter defaults and inclusive limits; ranges are sampled on activation."""
 
+from ..scenes.catalog import CATALOG
 from .synthesis_specs import OPTIONS, STRUCTURED
 from .synthesis_specs import PARAMETERS as SYNTHESIS
 
@@ -72,6 +73,7 @@ GENERATORS.update(
         "waveform_monitor",
     }
 )
+GENERATORS.update(CATALOG)
 
 
 def defaults(kind):
